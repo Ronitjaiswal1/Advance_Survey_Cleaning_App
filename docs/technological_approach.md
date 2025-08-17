@@ -61,3 +61,28 @@ Build a low‑code, configurable web app to ingest raw survey data (CSV/Excel), 
 - More report templating (Jinja2), multi-page PDFs, and branding.
 - Authentication, role-based access, and full audit trails.
 - Pluggable storage backends (S3/Azure Blob) and dataset catalogs.
+
+## Methodology Flowchart
+```mermaid
+flowchart TD
+   User --> Upload
+   Upload --> Config
+   Config --> Profile
+   Profile --> Cleaning{Cleaning}
+   Cleaning --> Imputation
+   Cleaning --> Outliers
+   Cleaning --> Rules
+   Imputation --> Cleaned
+   Outliers --> Cleaned
+   Rules --> Cleaned
+   Cleaned --> Weights
+   Weights --> Estimation
+   Estimation --> Dashboards
+   Dashboards --> Reports
+   Reports --> Exports
+   Cleaning -.-> Logs
+   Rules -.-> Logs
+   Estimation -.-> Logs
+   Exports --> Versioning
+   Logs --> Versioning
+```
