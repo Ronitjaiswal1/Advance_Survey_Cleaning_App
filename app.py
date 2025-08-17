@@ -65,12 +65,7 @@ def log(msg):
     state["logs"].append(msg)
 
 def numeric_cols(df):
-    try:
-        from pandas.api.types import is_numeric_dtype
-        return [c for c in df.columns if is_numeric_dtype(df[c])]
-    except Exception:
-        # Fallback to numpy number detection
-        return df.select_dtypes(include=[np.number]).columns.tolist()
+    return df.select_dtypes(include=[np.number]).columns.tolist()
 
 def cat_cols(df):
     return df.select_dtypes(exclude=[np.number]).columns.tolist()
@@ -188,14 +183,7 @@ elif page.startswith("2"):
         if run:
             cleaned = df.copy()
             nums = numeric_cols(cleaned)
-            if impute_method != "None" and len(nums) > 0:
-                # Ensure numeric block is float for sklearn imputers
-                if nums:
-                    try:
-                        cleaned[nums] = cleaned[nums].apply(pd.to_numeric, errors="coerce").astype(float)
-                    except Exception:
-                        # Minimal fallback: coerce without astype chain
-                        cleaned[nums] = cleaned[nums].apply(pd.to_numeric, errors="coerce")
+            if impute_method != "None":
                 if impute_method == "Mean":
                     imputer = SimpleImputer(strategy="mean")
                 elif impute_method == "Median":
@@ -217,11 +205,6 @@ elif page.startswith("2"):
                 except Exception as e:
                     log(f"Imputation failed: {e}")
             if outlier_method != "None" and len(nums) > 0:
-                # Work on a float view for outlier calculations
-                try:
-                    cleaned[nums] = cleaned[nums].apply(pd.to_numeric, errors="coerce").astype(float)
-                except Exception:
-                    cleaned[nums] = cleaned[nums].apply(pd.to_numeric, errors="coerce")
                 if outlier_method.startswith("Z"):
                     z = (cleaned[nums] - cleaned[nums].mean())/cleaned[nums].std(ddof=0)
                     mask = (np.abs(z) < 3).all(axis=1)
