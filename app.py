@@ -7,7 +7,7 @@ import json
 import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.impute import SimpleImputer, KNNImputer, IterativeImputer
+from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
@@ -70,65 +70,14 @@ def numeric_cols(df):
 def cat_cols(df):
     return df.select_dtypes(exclude=[np.number]).columns.tolist()
 
-# Robust CSV loader with encoding detection/fallbacks
-def _detect_encoding(data: bytes):
-    try:
-        import chardet  # type: ignore
-        res = chardet.detect(data)
-        return res.get("encoding")
-    except Exception:
-        return None
-
-def load_csv_file(uploaded_file, encoding_choice: str):
-    data = uploaded_file.getvalue() if hasattr(uploaded_file, "getvalue") else uploaded_file.read()
-    enc_map = {
-        "UTF-8": "utf-8",
-        "UTF-8-SIG": "utf-8-sig",
-        "CP1252": "cp1252",
-        "Latin-1": "latin1",
-        "UTF-16": "utf-16",
-        "UTF-16 LE": "utf-16le",
-        "UTF-16 BE": "utf-16be",
-    }
-    chosen = None
-    if encoding_choice == "Auto-detect":
-        chosen = _detect_encoding(data)
-    else:
-        chosen = enc_map.get(encoding_choice)
-    # Build fallback order (unique, preserving order)
-    fallbacks = [e for e in [chosen, "utf-8", "utf-8-sig", "cp1252", "latin1", "utf-16"] if e]
-    seen = set(); ordered = []
-    for e in fallbacks:
-        if e not in seen:
-            ordered.append(e); seen.add(e)
-    last_err = None
-    for enc in ordered:
-        try:
-            return pd.read_csv(io.BytesIO(data), encoding=enc)
-        except Exception as e:
-            last_err = e
-    # Last resort: decode with replacement to avoid hard fail
-    try:
-        txt = data.decode(chosen or "utf-8", errors="replace")
-        return pd.read_csv(io.StringIO(txt))
-    except Exception:
-        raise last_err or Exception("Failed to read CSV with tried encodings")
-
 # 1) Upload & Profile
 if page.startswith("1"):
     uploaded = st.file_uploader("Upload CSV/Excel", type=["csv", "xlsx"])
-    enc_choice = st.selectbox("File encoding (CSV)", [
-        "Auto-detect", "UTF-8", "UTF-8-SIG", "CP1252", "Latin-1", "UTF-16", "UTF-16 LE", "UTF-16 BE"
-    ], index=0, help="Use Auto-detect for most files. If you see a decoding error, try CP1252 or Latin-1 for Windows-generated CSVs.")
     schema_json = st.text_area("Optional: JSON schema mapping (rename, dtypes)", height=120,
                                placeholder='{"rename": {"old":"new"}, "dtypes": {"age":"Int64"}}')
     if uploaded:
         if uploaded.name.endswith(".csv"):
-            try:
-                df = load_csv_file(uploaded, enc_choice)
-            except Exception as e:
-                st.error(f"Failed to read CSV: {e}")
-                st.stop()
+            df = pd.read_csv(uploaded)
         else:
             df = pd.read_excel(uploaded)
         if schema_json.strip():
