@@ -1,0 +1,86 @@
+flowchart LR
+  %% Layers as subgraphs with simple titles and labels
+  subgraph FRONTEND [Frontend]
+    direction TB
+    U[User and Stakeholders]
+    UI[Streamlit UI]
+    CFG[Config and Schema UI JSON]
+    UP[File Upload CSV Excel]
+    PRF[Profiling EDA]
+    U --> UI --> UP
+    UI --> CFG
+    UP --> PRF
+  end
+
+  subgraph BACKEND [Backend Processing Core]
+    direction TB
+    ORC[Pipeline Orchestrator]
+  end
+
+  subgraph AI_ML [AI and ML]
+    direction TB
+    IMP[Imputation - Mean Median Mode KNN Iterative MissForest]
+    OUT[Outliers - Z score IQR Isolation Forest Winsorize]
+    RLS[Rule Engine - Required Range Regex Unique Allowed]
+    WGT[Design Weights]
+    EST[Estimation - Weighted Mean SE MoE CI plus DP]
+  end
+
+  subgraph REPORTING [Reporting and Dashboards]
+    direction TB
+    VIZ[Visualizations - Matplotlib Seaborn]
+    RPT[Reports - HTML PDF]
+  end
+
+  subgraph STORAGE [Storage and Artifacts]
+    direction TB
+    RAW[Raw Files]
+    CLN[Cleaned Data]
+    ESTS[Estimates]
+    RPTS[Reports Exports]
+    WF[Workflow JSON]
+    LOGS[Logs Audit]
+  end
+
+  subgraph DATABASE [Database]
+    direction TB
+    DB[Optional Metadata DB]
+  end
+
+  %% Data flow left-to-right, avoid crossings
+  PRF --> ORC
+  CFG --> ORC
+  ORC --> IMP
+  ORC --> OUT
+  ORC --> RLS
+  IMP --> WGT
+  OUT --> WGT
+  RLS --> WGT
+  WGT --> EST
+  EST --> VIZ --> RPT
+
+  %% Storage sinks
+  UP --> RAW
+  IMP --> CLN
+  OUT --> CLN
+  RLS --> CLN
+  EST --> ESTS
+  EST --> WF
+  RPT --> RPTS
+  ORC --> LOGS
+  ORC -. meta .-> DB
+
+  %% Colors and styles
+  classDef frontend fill:#E3F2FD,stroke:#1E88E5,stroke-width:1px,color:#0D47A1
+  classDef backend fill:#E8F5E9,stroke:#43A047,stroke-width:1px,color:#1B5E20
+  classDef aiml fill:#FFF3E0,stroke:#FB8C00,stroke-width:1px,color:#E65100
+  classDef reporting fill:#F3E5F5,stroke:#8E24AA,stroke-width:1px,color:#4A148C
+  classDef storage fill:#FFFDE7,stroke:#FDD835,stroke-width:1px,color:#F57F17
+  classDef database fill:#E0F7FA,stroke:#00ACC1,stroke-width:1px,color:#006064
+
+  class U,UI,CFG,UP,PRF frontend
+  class ORC backend
+  class IMP,OUT,RLS,WGT,EST aiml
+  class VIZ,RPT reporting
+  class RAW,CLN,ESTS,RPTS,WF,LOGS storage
+  class DB database
